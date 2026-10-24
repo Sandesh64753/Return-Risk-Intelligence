@@ -1,48 +1,45 @@
-# Product Return Intelligence Platform (Multi-Company)
+# Product Return Intelligence Platform (Backend Service)
 
-An enterprise-grade, multi-company machine learning platform engineered to help e-commerce brands predict, analyze, and systematically reduce product returns.
+[![Python](https://img.shields.io/badge/Python-3.11+-3776AB?style=flat&logo=python&logoColor=white)](https://www.python.org/)
+[![FastAPI](https://img.shields.io/badge/FastAPI-0.115+-009688?style=flat&logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com/)
+[![PostgreSQL](https://img.shields.io/badge/PostgreSQL-Neon_Serverless-4169E1?style=flat&logo=postgresql&logoColor=white)](https://neon.tech/)
+[![Docker](https://img.shields.io/badge/Docker-Ready-2496ED?style=flat&logo=docker&logoColor=white)](https://www.docker.com/)
+[![Tests](https://img.shields.io/badge/Pytest-25_Passed-brightgreen?style=flat&logo=pytest&logoColor=white)](https://pytest.org/)
 
-The platform provides a **React.js single-page application** (`frontend/`) and a **FastAPI machine learning & data service** (`backend/`), combining pre-shipment predictive inference, multi-tenant database isolation, historical return rate analytics with Wilson confidence intervals, and automated operational recommendations with before-and-after impact tracking.
+FastAPI backend service powering the Product Return Intelligence Platform. Provides high-throughput pre-shipment ML risk inference, multi-tenant workspace isolation, historical return analytics with Wilson confidence intervals, and automated operational recommendation workflows.
 
 ---
 
-## 1. Architecture Overview
+## 1. Architecture & Service Overview
 
 ```
-                                      +---------------------------------------------+
-                                      |         React 19 + Vite Frontend            |
-                                      |             (frontend/ directory)           |
-                                      |  - React SPA with custom warm slate CSS     |
-                                      |  - Operations Dashboard & Analytics Console |
-                                      |  - Interactive Pre-Shipment Prediction Form |
-                                      |  - Return Reduction Action Plans & Tracking |
-                                      |  - Historical CSV Ingestion & 1-Click Seed  |
-                                      +----------------------+----------------------+
-                                                             |
-                                               HTTP / JSON   | Credentials (Cookies)
-                                               Proxied: :5173 -> :8000
-                                                             v
-                                      +---------------------------------------------+
-                                      |           FastAPI Backend Service           |
-                                      |              (backend/ directory)           |
-                                      |  - RESTful JSON API Router (/api/*)         |
-                                      |  - Signed Session Auth (Argon2id + itsdang) |
-                                      |  - Strict Multi-Tenant Scoping by company_id|
-                                      |  - ML Inference Engine (Scikit-Learn Joblib)|
-                                      +----------------------+----------------------+
-                                                             |
-                                      +----------------------+----------------------+
-                                      |                                             |
-                                      v                                             v
-                       +------------------------------+              +------------------------------+
-                       |    Relational Database       |              |   Trained ML Artifact        |
-                       |  (SQLite / PostgreSQL)       |              | (ColumnTransformer + LogReg) |
-                       |  - companies (Tenant Master) |              |  - 17 pre-shipment features  |
-                       |  - products (SKUs & Catalog) |              |  - Tuned threshold: 0.3974   |
-                       |  - prediction_records        |              |  - Target Recall: ~90.0%     |
-                       |  - actual_return_records     |              +------------------------------+
-                       |  - recommendation_records    |
-                       +------------------------------+
+                          +---------------------------------------------+
+                          |         Client / React Application          |
+                          +----------------------+----------------------+
+                                                 |
+                                   HTTP / JSON   | Credentials (Cookies)
+                                   Proxied / Direct -> :8000
+                                                 v
+                          +---------------------------------------------+
+                          |           FastAPI Backend Service           |
+                          |  - RESTful JSON API Router (/api/*)         |
+                          |  - Signed Session Auth (Argon2id + itsdang) |
+                          |  - Strict Multi-Tenant Scoping by company_id|
+                          |  - ML Inference Engine (Scikit-Learn Joblib)|
+                          +----------------------+----------------------+
+                                                 |
+                          +----------------------+----------------------+
+                          |                                             |
+                          v                                             v
+           +------------------------------+              +------------------------------+
+           |    Relational Database       |              |     Trained ML Pipeline      |
+           | (Neon PostgreSQL or SQLite)  |              | (CapstoneFeatureTransformer  |
+           |  - companies (Tenant Master) |              |  + Balanced Logistic Reg)    |
+           |  - products (SKUs & Catalog) |              |  - 17 pre-shipment features  |
+           |  - prediction_records        |              |  - Calibrated thresh: 0.3974 |
+           |  - actual_return_records     |              |  - ROC-AUC: 0.9366, F1: 0.79 |
+           |  - recommendation_records    |              +------------------------------+
+           +------------------------------+
 ```
 
 ---
@@ -50,222 +47,122 @@ The platform provides a **React.js single-page application** (`frontend/`) and a
 ## 2. Directory Structure
 
 ```
-product-return-prediction/
-├── frontend/                     # React.js Single Page Application
-│   ├── package.json              # React 19, Lucide React, Vite
-│   ├── vite.config.js            # Vite config with backend proxy (:8000)
-│   ├── src/
-│   │   ├── main.jsx              # React DOM mounting
-│   │   ├── App.jsx               # Router & session state management
-│   │   ├── api.js                # Central API client (cookie credentials)
-│   │   ├── index.css             # Enterprise design system (770+ lines of custom CSS)
-│   │   ├── components/
-│   │   │   ├── Navbar.jsx        # Company workspace badge & navigation
-│   │   │   └── Footer.jsx        # Operational notes & quick links
-│   │   └── pages/
-│   │       ├── Home.jsx          # Public landing with live inspection demo
-│   │       ├── Dashboard.jsx     # Company KPIs, top return categories & recent stream
-│   │       ├── Predict.jsx       # 4-section order assessment form & presets
-│   │       ├── Result.jsx        # Calibrated risk verdict & historical benchmark
-│   │       ├── History.jsx       # Paginated prediction audit logs with filtering
-│   │       ├── PredictionDetail.jsx # Deep inspection of captured input features
-│   │       ├── Analytics.jsx     # Empirical segmentation & Wilson 95% CIs
-│   │       ├── Performance.jsx   # Period-over-period return reduction trends
-│   │       ├── Recommendations.jsx # Rule-based action plans & outcome impact
-│   │       ├── Import.jsx        # Historical CSV upload & 1-click 150-order seeder
-│   │       ├── Login.jsx         # Company workspace sign-in
-│   │       ├── Register.jsx      # Multi-tenant organization creation
-│   │       ├── Methodology.jsx   # Point-in-time constraints & threshold math
-│   │       └── About.jsx         # Architecture & developer REST endpoints
-│   └── dist/                     # Optimized production bundle
-│
-├── backend/                      # Python FastAPI Application Service
-│   ├── app/
-│   │   ├── main.py               # FastAPI initialization, CORS & error handlers
-│   │   ├── config.py             # App settings, thresholds & paths
-│   │   ├── database.py           # SQLAlchemy 2.x session & engine
-│   │   ├── schemas.py            # Pydantic validation schemas
-│   │   ├── models/               # SQLAlchemy ORM models
-│   │   │   ├── company.py        # Company tenant model
-│   │   │   ├── product.py        # Catalog SKU model
-│   │   │   ├── prediction.py     # PredictionRecord audit model
-│   │   │   ├── actual_return.py  # ActualReturnRecord historical ledger
-│   │   │   └── recommendation.py # Actionable recommendation record
-│   │   ├── auth/                 # Authentication & security
-│   │   │   ├── security.py       # Argon2id hashing & signed cookies
-│   │   │   └── dependencies.py   # Company session resolvers
-│   │   ├── services/             # Core business logic
-│   │   │   ├── prediction_service.py # Inference & feature alignment
-│   │   │   ├── analytics_service.py  # Wilson score intervals & segment metrics
-│   │   │   ├── recommendation_service.py # Operational rules & impact tracking
-│   │   │   └── import_service.py     # CSV validation & demo seeder
-│   │   └── routers/
-│   │       ├── api.py            # Full JSON REST API
-│   │       └── pages.py          # Legacy server-side rendering fallback
-│   ├── alembic/                  # Database migration scripts
-│   ├── alembic.ini               # Alembic configuration
-│   └── pyproject.toml            # Backend dependencies
-│
-├── artifacts/
-│   └── product_return_prediction.joblib  # Trained model & ColumnTransformer pipeline
-├── dataset/
-│   ├── cleaned_returns.csv       # Cleaned e-commerce returns dataset
-│   └── returns_dataset.csv       # Raw feature dataset
-└── tests/
-    ├── test_multi_company_platform.py # Multi-tenant isolation & API integration tests
-    ├── test_prediction.py        # Inference pipeline, threshold & bounds tests
-    └── test_pages.py             # Endpoint & SSR route tests
+backend/
+├── Dockerfile                    # Containerization configuration
+├── docker-compose.yml            # Standalone container orchestration
+├── requirements.txt              # Production pip requirements
+├── pyproject.toml                # UV package specification
+├── alembic.ini                   # Alembic database migration config
+├── alembic/                      # Alembic version migrations
+│   └── versions/                 # Version scripts
+├── app/
+│   ├── main.py                   # FastAPI app instance, CORS & exception handlers
+│   ├── config.py                 # Settings, Neon/PostgreSQL pool & threshold config
+│   ├── database.py               # SQLAlchemy 2.x session & connection pooling
+│   ├── schemas.py                # Pydantic validation schemas
+│   ├── models/                   # SQLAlchemy ORM models
+│   │   ├── company.py            # Company tenant model
+│   │   ├── product.py            # Catalog SKU model
+│   │   ├── prediction.py         # PredictionRecord audit model
+│   │   ├── actual_return.py      # ActualReturnRecord historical ledger
+│   │   └── recommendation.py     # Actionable recommendation record
+│   ├── auth/                     # Authentication & security
+│   │   ├── security.py           # Argon2id hashing & signed cookies
+│   │   └── dependencies.py       # Company session resolvers
+│   ├── services/                 # Core business logic
+│   │   ├── prediction_service.py # Inference & Capstone feature pipeline
+│   │   ├── analytics_service.py  # Wilson score intervals & segment metrics
+│   │   ├── recommendation_service.py # Operational rules & impact tracking
+│   │   └── import_service.py     # CSV validation & demo seeder
+│   └── routers/
+│       ├── api.py                # Full JSON REST API
+│       └── pages.py              # Server-side rendering fallback
+└── artifacts/
+    ├── model.joblib              # Serialized Capstone trained model bundle
+    └── product_return_prediction.joblib # Backup model artifact
 ```
 
 ---
 
-## 3. Getting Started
+## 3. Machine Learning Inference Pipeline
 
-### Prerequisites
-- **Python:** 3.10+ (Python 3.11 recommended)
-- **Node.js:** v18+ (Node v22 recommended)
-- **Package Managers:** `uv` (or `pip`) and `npm`
+Built on the CapStone modeling solution (`artifacts/model.joblib`):
+- **Model**: Scikit-Learn Balanced Logistic Regression.
+- **Preprocessor (`CapstoneFeatureTransformer`)**: Preprocesses raw inputs using median imputation, feature engineering, and standard scaling.
+- **Metrics**: ROC-AUC: `0.9366`, F1: `0.7933`.
+- **Tuned Operational Threshold**: `0.3974` (calibrated to prioritize ~90% recall of return events).
+- **Grounded Key Factors**:
+  - Payment method risk differentiation (Cash on Delivery ~50.5% return rate vs ~15.7% for UPI).
+  - Transit distance and delivery delay impact.
+  - Defect rate (>8%) and fragility alerts.
+  - Pre-dispatch customer support touchpoint volume.
 
 ---
 
-### Step 1: Run the Backend
+## 4. Environment Variables
+
+Create `.env` inside `backend/` or project root:
+
+```ini
+ENVIRONMENT=development
+DEBUG=false
+HOST=0.0.0.0
+PORT=8000
+
+SECRET_KEY=dev-secure-session-signing-key-change-for-production-min32bytes
+
+# Database Configuration (Neon PostgreSQL or SQLite)
+POSTGRESS_DATABASE=postgresql://neondb_owner:password@ep-morning-dew-b500nhyb-pooler.c-7.us-east-2.aws.neon.tech/Data%20Storage%20of%20product%20details?sslmode=require&channel_binding=require
+
+# Database pool tuning
+DB_POOL_SIZE=10
+DB_MAX_OVERFLOW=20
+DB_POOL_RECYCLE=300
+
+# Path to serialized model bundle
+ARTIFACT_PATH=artifacts/model.joblib
+
+# Optional threshold override
+# PREDICTION_THRESHOLD=0.397378
+```
+
+---
+
+## 5. Deployment & Execution
+
+### Docker Deployment
 
 ```bash
-# 1. From the project root, install Python dependencies:
-uv sync
+# Build and run with Docker Compose
+docker compose up --build
 
-# 2. Apply database migrations:
-uv run alembic upgrade head
-
-# 3. Start the FastAPI backend server:
-uv run uvicorn app.main:app --host 127.0.0.1 --port 8000 --reload
+# Run container directly
+docker build -t return-risk-backend .
+docker run -p 8000:8000 --env-file .env return-risk-backend
 ```
 
-The backend is now running at `http://127.0.0.1:8000`.
-- Interactive API Docs (Swagger UI): `http://127.0.0.1:8000/docs`
-- Health check: `http://127.0.0.1:8000/health`
-
----
-
-### Step 2: Run the React Frontend
-
-Open a new terminal window:
+### Local Setup
 
 ```bash
-# 1. Navigate to the frontend directory:
-cd frontend
+# Install dependencies
+pip install -r requirements.txt
 
-# 2. Install NPM dependencies:
-npm install
+# Run migrations
+alembic upgrade head
 
-# 3. Start the Vite development server:
-npm run dev
+# Run server
+uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
 ```
 
-The React operations console is now live at:
-**`http://localhost:5173`**
-
-The Vite development server automatically proxies all `/api` and `/health` requests to `http://127.0.0.1:8000` with session cookie forwarding (`credentials: include`).
+- Swagger API Documentation: `http://localhost:8000/docs`
+- Health Endpoint: `http://localhost:8000/health`
 
 ---
 
-### Step 3: Building Frontend for Production
+## 6. Running Tests
 
 ```bash
-cd frontend
-npm run build
+# Run pytest from project root
+pytest -v
 ```
-
-This compiles optimized client assets into `frontend/dist/`.
-
----
-
-## 4. Key Platform Features
-
-### A. Multi-Tenant Company Isolation
-- Every company registers an independent workspace.
-- Passwords are securely hashed with **Argon2id**.
-- Authentication uses **signed HTTP-only session cookies** (`itsdangerous`).
-- All queries for predictions, products, actual return ledger records, and recommendations are strictly filtered by the authenticated `company_id`. Cross-tenant access is blocked with 404 responses.
-
-### B. Machine Learning Pipeline & Calibrated Threshold
-- **Serialized Model:** Scikit-Learn balanced Logistic Regression with standard feature scaling and one-hot encoding.
-- **Pre-Shipment Point-in-Time Constraint:** 17 validated pre-shipment features. All post-purchase signals (delayed transit, customer support tickets, refund claims) are strictly excluded from the inference pipeline.
-- **Tuned Threshold (`0.3974`):** Lowered from 0.50 to prioritize ~90% recall of return events on validation data, protecting merchant margins from costly reverse logistics.
-
-### C. Empirical Historical Returns & Wilson Confidence Intervals
-- When calculating return rates on small cohorts, naive division (e.g. 1/1 = 100%) distorts reality.
-- The platform calculates **Wilson score 95% confidence intervals** (`ci_low`, `ci_high`) for all segmentations across Category, Sub-Category, Brand, SKU, Fulfillment Type, and Payment Method.
-- Distinguishes **Predicted Probability** (pre-shipment risk estimate) from **Actual Return Rate** (empirical outcome logged post-delivery).
-
-### D. Automated Return Reduction Action Plans
-- The recommendation engine scans company catalog history for statistically significant return drivers.
-- Generates targeted interventions:
-  - High-defect items: Require supplier QA certification and packaging reinforcement.
-  - High-discount apparel with COD: Implement SMS pre-dispatch address verification and sizing chart prompt.
-  - Fragile home goods: Upgrade cushioning to double-wall corrugated packaging.
-- Supports operational statuses (`open`, `in_progress`, `implemented`, `dismissed`).
-- When marked as `implemented` with an implementation date, the system measures **Before vs After Outcome Impact** to calculate real return rate reduction in percentage points.
-
-### E. Data Ingestion & 1-Click Seeder
-- **CSV Ingestion:** Ingest historical orders with idempotency (skips duplicate order reference IDs per company).
-- **Downloadable CSV Template:** Pre-formatted with exact column headers and sample data.
-- **1-Click 150-Order Demo Seeder:** Seed 150 realistic orders with verified return outcomes directly into any new company workspace to explore analytics instantly.
-
----
-
-## 5. Running Automated Tests
-
-All tests are implemented using `pytest` and `fastapi.testclient`:
-
-```bash
-# Run all tests across backend, ML pipeline, and multi-tenant security:
-.venv\Scripts\python.exe -m pytest -v
-```
-
-### Test Coverage Highlights:
-- `tests/test_multi_company_platform.py`:
-  - Company A and Company B registration, login, and logout.
-  - Multi-company data isolation: Company B cannot see Company A's predictions, historical orders, or recommendations.
-  - Direct access horizontal privilege escalation tests.
-  - CSV import validation, duplicate avoidance, and template download.
-  - Analytics with Wilson confidence intervals and period comparisons.
-  - Recommendation status lifecycle and before/after impact calculations.
-- `tests/test_prediction.py`:
-  - Model artifact loading and schema validation.
-  - Pre-shipment boundary checks (rating, price, distance).
-  - Agreement with trained notebook baseline test cases.
-- `tests/test_pages.py`:
-  - Unauthenticated redirect protection.
-  - Form rendering and error handling.
-
----
-
-## 6. API Reference Summary
-
-| Method | Endpoint | Description | Auth Required |
-|---|---|---|---|
-| `GET` | `/health` | System health and model readiness | No |
-| `GET` | `/api/categories` | Valid categories, brands, and taxonomy | No |
-| `GET` | `/api/presets` | Demonstration order presets for testing | No |
-| `POST` | `/api/auth/register` | Register new company workspace | No |
-| `POST` | `/api/auth/login` | Sign in to company workspace | No |
-| `GET` | `/api/auth/me` | Current authenticated company profile | No |
-| `POST` | `/api/auth/logout` | Sign out and clear session cookie | Yes |
-| `POST` | `/api/predict` | Run pre-shipment return probability prediction | Optional (links to company if logged in) |
-| `GET` | `/api/predictions` | Paginated prediction audit history | Yes |
-| `GET` | `/api/predictions/{id}` | Single prediction audit record with inputs | Yes |
-| `GET` | `/api/dashboard` | Workspace KPIs, top categories & recent stream | Yes |
-| `GET` | `/api/analytics` | Return rates segmented with Wilson 95% CIs | Yes |
-| `GET` | `/api/performance` | Period-over-period return rate comparisons | Yes |
-| `GET` | `/api/recommendations`| Return reduction action plans & impact tracking| Yes |
-| `POST` | `/api/recommendations/{id}/status` | Update action plan status & notes | Yes |
-| `POST` | `/api/import` | Upload bulk historical order CSV | Yes |
-| `GET` | `/api/import/template` | Download standard CSV import template | No |
-| `POST` | `/api/import/demo-seed`| 1-Click seed 150 verified sample orders | Yes |
-
----
-
-## 7. License
-
-Internal Enterprise Operations Software & Machine Learning Pipeline.
+All 25 automated unit and integration tests validate tenant scoping, privilege security, and inference correctness.
