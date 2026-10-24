@@ -1,0 +1,157 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div style="margin-bottom: 1.5rem;">
+  <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
+    <div>
+      <h1 class="page-title" style="margin-bottom: 0.25rem;">Return Performance & Improvement Monitoring</h1>
+      <p class="page-lead" style="margin-bottom: 0;">
+        Evaluate whether actual product return rates are improving over comparable, equivalent observation windows.
+      </p>
+    </div>
+    <div class="filter-group">
+      <label for="window_days" style="font-size: 0.82rem; font-weight: 500; color: var(--text-secondary);">Observation Window:</label>
+      <select id="window_days" class="form-control" style="width: auto; padding: 0.35rem 0.6rem; font-size: 0.82rem;" onchange="location.href='/performance?window_days=' + this.value">
+        <option value="14" {% if window_days == 14 %}selected{% endif %}>14 Days (Bi-Weekly)</option>
+        <option value="30" {% if window_days == 30 %}selected{% endif %}>30 Days (Monthly Standard)</option>
+        <option value="60" {% if window_days == 60 %}selected{% endif %}>60 Days (Bi-Monthly)</option>
+        <option value="90" {% if window_days == 90 %}selected{% endif %}>90 Days (Quarterly)</option>
+      </select>
+    </div>
+  </div>
+</div>
+
+<!-- Strict Governance & Methodology Notice -->
+<div class="callout" style="background-color: var(--bg-surface); border-left: 3px solid var(--accent-primary); margin-bottom: 1.75rem;">
+  <strong>Measurement Standard:</strong> Return rates are calculated strictly as <em>(Verified Returns / Eligible Orders with Known Outcomes)</em> across equal time windows. Orders with unobserved outcomes (e.g. recent shipments still inside return eligibility windows) are excluded from the denominator to prevent artificial return-rate deflation.
+</div>
+
+<!-- Period Trend Verdict Card -->
+<div class="card" style="margin-bottom: 2rem;">
+  <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem; margin-bottom: 1.25rem;">
+    <div>
+      <span class="card-subtitle" style="text-transform: uppercase; letter-spacing: 0.04em;">Observation Window: {{ window_days }} Days</span>
+      <h2 class="card-title" style="margin-top: 0.2rem;">Consecutive Period Comparison</h2>
+    </div>
+    <div>
+      {% if comparison.verdict == 'improving' %}
+        <span class="trend-pill trend-improving">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="23 6 13.5 15.5 8.5 10.5 1 18"></polyline>
+            <polyline points="17 6 23 6 23 12"></polyline>
+          </svg>
+          Improving Return Rate
+        </span>
+      {% elif comparison.verdict == 'deteriorating' %}
+        <span class="trend-pill trend-deteriorating">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="23 18 13.5 8.5 8.5 13.5 1 6"></polyline>
+            <polyline points="17 18 23 18 23 12"></polyline>
+          </svg>
+          Elevating Return Rate
+        </span>
+      {% elif comparison.verdict == 'stable' %}
+        <span class="trend-pill trend-stable">
+          Stable Performance
+        </span>
+      {% else %}
+        <span class="badge badge-neutral">Insufficient Data</span>
+      {% endif %}
+    </div>
+  </div>
+
+  <p style="font-size: 0.92rem; color: var(--text-primary); margin-bottom: 1.5rem;">
+    {{ comparison.summary_message }}
+  </p>
+
+  <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1.25rem;">
+    <!-- Current Period -->
+    <div style="background-color: var(--bg-subtle); padding: 1.25rem; border-radius: var(--radius-sm); border: 1px solid var(--border-light);">
+      <div style="font-size: 0.76rem; text-transform: uppercase; color: var(--text-muted); font-weight: 600; margin-bottom: 0.35rem;">
+        Current Period ({{ comparison.current_period.start }} to {{ comparison.current_period.end }})
+      </div>
+      <div style="font-size: 1.85rem; font-weight: 700; color: var(--text-primary); line-height: 1.1;">
+        {{ comparison.current_period.rate }}%
+      </div>
+      <div style="font-size: 0.8rem; color: var(--text-secondary); margin-top: 0.35rem;">
+        {{ comparison.current_period.returns }} returns out of {{ comparison.current_period.orders }} eligible orders
+      </div>
+    </div>
+
+    <!-- Previous Period -->
+    <div style="background-color: var(--bg-subtle); padding: 1.25rem; border-radius: var(--radius-sm); border: 1px solid var(--border-light);">
+      <div style="font-size: 0.76rem; text-transform: uppercase; color: var(--text-muted); font-weight: 600; margin-bottom: 0.35rem;">
+        Previous Period ({{ comparison.previous_period.start }} to {{ comparison.previous_period.end }})
+      </div>
+      <div style="font-size: 1.85rem; font-weight: 700; color: var(--text-primary); line-height: 1.1;">
+        {{ comparison.previous_period.rate }}%
+      </div>
+      <div style="font-size: 0.8rem; color: var(--text-secondary); margin-top: 0.35rem;">
+        {{ comparison.previous_period.returns }} returns out of {{ comparison.previous_period.orders }} eligible orders
+      </div>
+    </div>
+
+    <!-- Observed Change -->
+    <div style="background-color: var(--bg-subtle); padding: 1.25rem; border-radius: var(--radius-sm); border: 1px solid var(--border-light);">
+      <div style="font-size: 0.76rem; text-transform: uppercase; color: var(--text-muted); font-weight: 600; margin-bottom: 0.35rem;">
+        Observed Difference
+      </div>
+      <div style="font-size: 1.85rem; font-weight: 700; line-height: 1.1; color: {% if comparison.diff_pp < 0 %}var(--status-low-risk-text){% elif comparison.diff_pp > 0 %}var(--status-high-risk-text){% else %}var(--text-primary){% endif %};">
+        {% if comparison.diff_pp > 0 %}+{{ comparison.diff_pp }}{% else %}{{ comparison.diff_pp }}{% endif %} pp
+      </div>
+      <div style="font-size: 0.8rem; color: var(--text-secondary); margin-top: 0.35rem;">
+        {% if comparison.relative_change_pct is not none %}
+          {% if comparison.relative_change_pct < 0 %}
+            ~{{ comparison.relative_change_pct | abs }}% relative reduction
+          {% elif comparison.relative_change_pct > 0 %}
+            ~{{ comparison.relative_change_pct }}% relative increase
+          {% else %}
+            0.0% relative change
+          {% endif %}
+        {% else %}
+          --
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Monthly Cohort Trend Table -->
+{% if comparison.monthly_series %}
+<div class="card">
+  <div class="card-header">
+    <span class="card-title">Monthly Return Cohort History</span>
+    <span style="font-size: 0.78rem; color: var(--text-muted);">Empirical Return Rate Progression by Order Month</span>
+  </div>
+  <div class="table-responsive">
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>Order Month</th>
+          <th class="text-right">Completed Orders</th>
+          <th class="text-right">Actual Returns</th>
+          <th class="text-right">Actual Return Rate</th>
+          <th class="text-center">Relative Visual</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for row in comparison.monthly_series %}
+        <tr>
+          <td><strong>{{ row.period }}</strong></td>
+          <td class="text-right">{{ row.orders }}</td>
+          <td class="text-right">{{ row.returns }}</td>
+          <td class="text-right"><strong>{{ row.return_rate }}%</strong></td>
+          <td class="text-center" style="width: 200px;">
+            <div style="background-color: var(--border-light); height: 8px; border-radius: 4px; overflow: hidden; max-width: 160px; margin: 0 auto;">
+              <div style="background-color: {% if row.return_rate >= 25 %}var(--status-high-risk-text){% else %}var(--accent-primary){% endif %}; height: 100%; width: {{ [row.return_rate, 100] | min }}%;"></div>
+            </div>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endif %}
+
+{% endblock %}

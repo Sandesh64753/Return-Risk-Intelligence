@@ -1,0 +1,105 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div style="margin-bottom: 1.5rem;">
+  <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
+    <div>
+      <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.25rem;">
+        <a href="/predictions" style="color: var(--text-muted); font-size: 0.84rem;">&larr; Back to Prediction History</a>
+        <span style="color: var(--border-medium);">&bull;</span>
+        <span class="badge badge-neutral">Audit Record #{{ record.id }}</span>
+      </div>
+      <h1 class="page-title">Prediction Audit Details</h1>
+      <p class="page-lead">
+        Evaluated on <strong>{{ record.created_at.strftime('%Y-%m-%d at %H:%M:%S UTC') }}</strong> &bull; Model: <code>{{ record.model_version }}</code>
+      </p>
+    </div>
+    <a href="/predict" class="btn btn-primary">Evaluate New Order</a>
+  </div>
+</div>
+
+<!-- Primary Result Hero Box -->
+<div class="result-hero {% if record.predicted_return_class == 1 %}risk-high{% else %}risk-low{% endif %}" style="margin-bottom: 1.75rem;">
+  <div>
+    <span class="result-badge">
+      {{ record.risk_level }} Risk Category &bull; Operational Classification
+    </span>
+    <h2 class="result-title">{{ record.risk_label }}</h2>
+    <p class="result-interpretation">
+      {% if record.predicted_return_class == 1 %}
+        The estimated return probability ({{ prob_pct }}%) meets or exceeds the operational decision threshold of {{ thresh_pct }}%.
+      {% else %}
+        The estimated return probability ({{ prob_pct }}%) is below the operational decision threshold of {{ thresh_pct }}%.
+      {% endif %}
+    </p>
+  </div>
+
+  <div class="result-stats-card">
+    <div class="prob-label">Estimated Probability</div>
+    <div class="prob-metric">{{ prob_pct }}%</div>
+    <div class="threshold-indicator">
+      Decision Threshold: <strong>{{ thresh_pct }}%</strong>
+    </div>
+  </div>
+</div>
+
+<!-- Grounded Historical Context -->
+{% if comparison %}
+<div class="card" style="margin-bottom: 1.75rem; border-left: 3px solid var(--accent-primary);">
+  <div class="card-header">
+    <span class="card-title">Company Historical Context (Segment: {{ comparison.category }})</span>
+  </div>
+  <div class="card-body">
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1rem;">
+      <div style="background: var(--bg-subtle); padding: 0.75rem 1rem; border-radius: var(--radius-sm);">
+        <div style="font-size: 0.75rem; text-transform: uppercase; color: var(--text-muted); font-weight: 600;">Category Actual Return Rate</div>
+        <div style="font-size: 1.3rem; font-weight: 700; color: var(--text-primary);">
+          {% if comparison.has_category_history %}{{ comparison.historical_actual_return_rate }}%{% else %}Insufficient data{% endif %}
+        </div>
+        <div style="font-size: 0.76rem; color: var(--text-muted);">{{ comparison.historical_order_count }} verified orders</div>
+      </div>
+
+      <div style="background: var(--bg-subtle); padding: 0.75rem 1rem; border-radius: var(--radius-sm);">
+        <div style="font-size: 0.75rem; text-transform: uppercase; color: var(--text-muted); font-weight: 600;">Category Avg Predicted Prob</div>
+        <div style="font-size: 1.3rem; font-weight: 700; color: var(--text-primary);">
+          {% if comparison.historical_avg_predicted_prob is not none %}{{ comparison.historical_avg_predicted_prob }}%{% else %}--{% endif %}
+        </div>
+        <div style="font-size: 0.76rem; color: var(--text-muted);">Evaluated orders in segment</div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endif %}
+
+<!-- Full Parameter Summary Table -->
+<div class="card" style="margin-bottom: 1.75rem;">
+  <div class="card-header">
+    <span class="card-title">Submitted Input Features Transmitted for Inference</span>
+    <span style="font-size: 0.78rem; color: var(--text-muted);">Source: {{ record.prediction_source }}</span>
+  </div>
+  <div class="data-table-wrapper">
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>Feature</th>
+          <th>Recorded Value</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for k, v in features.items() %}
+        <tr>
+          <td style="font-weight: 500; color: var(--text-primary); width: 40%;"><code>{{ k }}</code></td>
+          <td><span class="metric-number">{{ v }}</span></td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<div style="display: flex; gap: 1rem; align-items: center;">
+  <a href="/predictions" class="btn btn-secondary">&larr; Back to History</a>
+  <a href="/dashboard" class="btn btn-secondary">Dashboard</a>
+  <button type="button" class="btn btn-secondary" onclick="window.print()">Print Audit</button>
+</div>
+{% endblock %}

@@ -1,0 +1,226 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="page-header">
+  <span class="page-tag">Technical Documentation</span>
+  <h1 class="page-title">Model Methodology & Validation</h1>
+  <p class="page-description">
+    Comprehensive overview of dataset formulation, pre-shipment leakage auditing, model selection, and operational threshold calibration.
+  </p>
+</div>
+
+<!-- Section 1: Problem Formulation & Timing -->
+<section style="margin-bottom: 2.25rem;">
+  <h2>1. Problem Formulation & Operational Timing</h2>
+  <p style="margin: 0.6rem 0 1rem 0;">
+    The objective of this machine learning system is to classify whether a purchased product will be <strong>returned</strong> (<code>returned = 1</code>) or <strong>retained</strong> (<code>returned = 0</code>).
+  </p>
+  <div class="callout" style="margin-top: 0;">
+    <strong>Crucial Constraint &bull; Pre-Shipment Prediction Point</strong>
+    <p>
+      Predictions are evaluated at the moment an order is approved, <em>prior to dispatch and delivery</em>. Any data that only manifests after fulfillment (delivery delays, customer support calls, chat interactions) represents future information and must be strictly excluded to prevent target leakage.
+    </p>
+  </div>
+</section>
+
+<!-- Section 2: Data Leakage Audit -->
+<section style="margin-bottom: 2.25rem;">
+  <h2>2. Pre-Shipment Leakage Audit</h2>
+  <p style="margin: 0.6rem 0 1rem 0;">
+    During exploratory data analysis, all dataset columns underwent a rigorous audit against their temporal availability at order placement:
+  </p>
+
+  <div class="card" style="margin-bottom: 1.25rem;">
+    <div class="data-table-wrapper">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Candidate Feature</th>
+            <th>Audit Decision</th>
+            <th>Technical Rationale</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><code>delayed_delivery</code></td>
+            <td><span style="color: var(--status-high-risk-text); font-weight: 600;">Excluded</span></td>
+            <td>Post-purchase event; only known after courier transit has commenced or failed.</td>
+          </tr>
+          <tr>
+            <td><code>customer_support_calls</code></td>
+            <td><span style="color: var(--status-high-risk-text); font-weight: 600;">Excluded</span></td>
+            <td>Support interactions occur overwhelmingly post-purchase regarding tracking or returns.</td>
+          </tr>
+          <tr>
+            <td><code>chat_interactions</code></td>
+            <td><span style="color: var(--status-high-risk-text); font-weight: 600;">Excluded</span></td>
+            <td>Customer support chat logs represent post-purchase inquiries.</td>
+          </tr>
+          <tr>
+            <td><code>total_support_contacts</code></td>
+            <td><span style="color: var(--status-high-risk-text); font-weight: 600;">Excluded</span></td>
+            <td>Exact linear dependency (<code>calls + chats</code>); creates rank deficiency and leakage.</td>
+          </tr>
+          <tr>
+            <td><code>*_return_rate</code> (Product / Brand / Seller)</td>
+            <td><span style="color: var(--status-high-risk-text); font-weight: 600;">Excluded</span></td>
+            <td>Historical rate aggregates risk leaking current/future order labels unless verified point-in-time safe.</td>
+          </tr>
+          <tr>
+            <td><code>product_category</code>, <code>sub_category</code>, <code>brand</code></td>
+            <td><span style="color: var(--status-low-risk-text); font-weight: 600;">Retained</span></td>
+            <td>Catalog specifications confirmed available at the moment of listing.</td>
+          </tr>
+          <tr>
+            <td><code>product_price</code>, <code>discount_percent</code></td>
+            <td><span style="color: var(--status-low-risk-text); font-weight: 600;">Retained</span></td>
+            <td>Transaction checkout financial values finalized before warehouse routing.</td>
+          </tr>
+          <tr>
+            <td><code>seller_rating</code>, <code>defect_rate</code>, <code>fulfillment_type</code></td>
+            <td><span style="color: var(--status-low-risk-text); font-weight: 600;">Retained</span></td>
+            <td>Established merchant reliability metrics and dispatch routing choice.</td>
+          </tr>
+          <tr>
+            <td><code>shipping_distance_km</code>, <code>quantity</code>, <code>payment_method</code></td>
+            <td><span style="color: var(--status-low-risk-text); font-weight: 600;">Retained</span></td>
+            <td>Logistics coordinates, basket volume, and checkout payment mechanism.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<!-- Section 3: Preprocessing & Data Cleaning -->
+<section style="margin-bottom: 2.25rem;">
+  <h2>3. Data Cleaning & Feature Transformation</h2>
+  <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1.25rem; margin-top: 0.85rem;">
+    <div class="card">
+      <div class="card-header"><span class="card-title">Numeric Pipeline</span></div>
+      <div class="card-body" style="font-size: 0.88rem;">
+        <ul style="padding-left: 1.25rem; line-height: 1.6;">
+          <li><strong>Median Imputation:</strong> Handles missing numeric fields (e.g. ratings or review counts) without sensitivity to extreme outliers.</li>
+          <li><strong>StandardScaler:</strong> Standardizes all continuous features to zero mean and unit variance for linear model convergence.</li>
+          <li><strong>Price Log Transform:</strong> Raw <code>product_price</code> exhibited high positive skewness (&gt; 1.0); transformed via <code>np.log1p(price)</code>.</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header"><span class="card-title">Categorical Pipeline</span></div>
+      <div class="card-body" style="font-size: 0.88rem;">
+        <ul style="padding-left: 1.25rem; line-height: 1.6;">
+          <li><strong>Most-Frequent Imputation:</strong> Replaces missing categorical values with training-set modes.</li>
+          <li><strong>One-Hot Encoding:</strong> Encodes discrete categories with <code>handle_unknown='ignore'</code> to ensure unseen categories in production do not break inference.</li>
+          <li><strong>Standardization:</strong> Whitespace trimmed and string formatting normalized.</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Section 4: Class Imbalance & Model Selection -->
+<section style="margin-bottom: 2.25rem;">
+  <h2>4. Class Imbalance & Estimator Selection</h2>
+  <p style="margin: 0.6rem 0 1rem 0;">
+    The dataset exhibits moderate class imbalance, with returns representing approximately <strong>30.4%</strong> of total orders.
+  </p>
+
+  <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.25rem; margin-bottom: 1.25rem;">
+    <div class="card">
+      <div class="card-header"><span class="card-title">Why Balanced Class Weighting (No SMOTE)</span></div>
+      <div class="card-body" style="font-size: 0.88rem;">
+        <p>
+          Instead of synthetic oversampling (SMOTE), class weighting (<code>class_weight='balanced'</code>) was implemented directly within the loss function. SMOTE interpolates artificial points between high-dimensional one-hot encoded categories, generating unrealistic combinations and distorting the calibration of predicted probabilities.
+        </p>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header"><span class="card-title">Why Logistic Regression Selected</span></div>
+      <div class="card-body" style="font-size: 0.88rem;">
+        <p>
+          In validation comparison against Decision Trees and Random Forests, regularized Logistic Regression achieved the highest validation F1 score. Furthermore, linear models produce well-calibrated probabilities, do not overfit noisy customer behavior, and exhibit stable inference latency.
+        </p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Section 5: Official Held-Out Test Evaluation -->
+<section style="margin-bottom: 2.25rem;">
+  <h2>5. Test Set Performance Evaluation</h2>
+  <p style="margin: 0.6rem 0 1rem 0;">
+    Evaluation metrics computed on the strictly held-out 20% test dataset (2,400 orders) after validation tuning:
+  </p>
+
+  <div class="card">
+    <div class="data-table-wrapper">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Model Configuration</th>
+            <th>Accuracy</th>
+            <th>Precision</th>
+            <th>Recall</th>
+            <th>F1-Score</th>
+            <th>ROC-AUC</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>Always Not Returned (Baseline)</strong></td>
+            <td><span class="metric-number">69.63%</span></td>
+            <td><span class="metric-number">0.00%</span></td>
+            <td><span class="metric-number">0.00%</span></td>
+            <td><span class="metric-number">0.00%</span></td>
+            <td><span class="metric-number">N/A</span></td>
+          </tr>
+          <tr>
+            <td><strong>Logistic Regression (Default &tau; = 0.50)</strong></td>
+            <td><span class="metric-number">79.96%</span></td>
+            <td><span class="metric-number">62.81%</span></td>
+            <td><span class="metric-number">83.40%</span></td>
+            <td><span class="metric-number">71.66%</span></td>
+            <td><span class="metric-number">89.39%</span></td>
+          </tr>
+          <tr style="background-color: var(--accent-subtle);">
+            <td><strong>Logistic Regression (Tuned &tau; = 0.3974)</strong></td>
+            <td><span class="metric-number">76.88%</span></td>
+            <td><span class="metric-number">57.77%</span></td>
+            <td><span class="metric-number">88.75%</span></td>
+            <td><span class="metric-number">69.98%</span></td>
+            <td><span class="metric-number">89.39%</span></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="callout" style="margin-top: 1.25rem;">
+    <strong>Threshold Tuning Rationale (&tau; = 0.3974)</strong>
+    <p>
+      In retail logistics operations, a missed return (False Negative) is substantially more costly than a false alert (False Positive) due to two-way freight, handling, restocking, and inventory depreciation. The decision threshold was calibrated on the validation set precision-recall curve to achieve at least <strong>90% recall</strong>, resulting in <strong>88.75%</strong> test recall in production.
+    </p>
+  </div>
+</section>
+
+<!-- Section 6: Limitations & Responsible Deployment -->
+<section style="margin-bottom: 2.5rem;">
+  <h2>6. Limitations & Responsible Deployment</h2>
+  <div class="card">
+    <div class="card-body" style="font-size: 0.88rem; line-height: 1.6;">
+      <p style="margin-bottom: 0.75rem;">
+        <strong>Statistical Association vs. Causality:</strong> Feature coefficients and probability estimates describe statistical correlations within historical logistics data. They do not demonstrate direct customer causation. For example, negative brand coefficients reflect baseline return rate differences conditional on other covariates, not merchant culpability.
+      </p>
+      <p style="margin-bottom: 0.75rem;">
+        <strong>Data Drift Monitoring:</strong> Customer return behaviors shift across seasonal sale periods (e.g., holiday peak discount surges). Continuous monitoring of feature distributions and periodic threshold recalibration are recommended.
+      </p>
+      <p>
+        <strong>Operational Decision-Support:</strong> This model is designed strictly for logistics risk prioritization (packaging reinforcement, proactive customer confirmation) and is not intended to automate punitive customer interventions.
+      </p>
+    </div>
+  </div>
+</section>
+{% endblock %}

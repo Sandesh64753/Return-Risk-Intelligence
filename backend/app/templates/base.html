@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{{ page_title | default("Product Return Intelligence Platform") }}</title>
+  <meta name="description" content="Multi-Company operational decision-support platform for pre-shipment product return risk and returns intelligence.">
+  <link rel="stylesheet" href="/static/css/style.css">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>📦</text></svg>">
+</head>
+<body>
+  <!-- Global Application Header -->
+  <header class="site-header">
+    <div class="container header-inner">
+      <a href="{% if current_company %}/dashboard{% else %}/{% endif %}" class="brand-wrapper">
+        <div class="brand-mark">R</div>
+        <span class="brand-name">ReturnRisk</span>
+        <span class="brand-badge">Intelligence</span>
+      </a>
+
+      <nav class="site-nav" aria-label="Main Navigation">
+        {% if current_company %}
+          <a href="/dashboard" class="nav-link {% if request.url.path == '/dashboard' %}active{% endif %}">Dashboard</a>
+          <a href="/predict" class="nav-link {% if request.url.path == '/predict' %}active{% endif %}">Predict</a>
+          <a href="/predictions" class="nav-link {% if request.url.path.startswith('/predictions') %}active{% endif %}">History</a>
+          <a href="/analytics" class="nav-link {% if request.url.path == '/analytics' %}active{% endif %}">Analytics</a>
+          <a href="/performance" class="nav-link {% if request.url.path == '/performance' %}active{% endif %}">Performance</a>
+          <a href="/recommendations" class="nav-link {% if request.url.path == '/recommendations' %}active{% endif %}">Recommendations</a>
+          <a href="/import" class="nav-link {% if request.url.path == '/import' %}active{% endif %}">Import</a>
+          <a href="/methodology" class="nav-link {% if request.url.path == '/methodology' %}active{% endif %}">Methodology</a>
+          <div class="auth-nav-group">
+            <span class="company-badge" title="Workspace: {{ current_company.name }} ({{ current_company.email }})">
+              <span class="company-dot"></span>
+              {{ current_company.name }}
+            </span>
+            <a href="/logout" class="nav-link" style="color: var(--text-muted); font-size: 0.84rem;">Logout</a>
+          </div>
+        {% else %}
+          <a href="/" class="nav-link {% if request.url.path == '/' %}active{% endif %}">Home</a>
+          <a href="/methodology" class="nav-link {% if request.url.path == '/methodology' %}active{% endif %}">Methodology</a>
+          <a href="/about" class="nav-link {% if request.url.path == '/about' %}active{% endif %}">About</a>
+          <a href="/docs" class="nav-link" target="_blank" rel="noopener">API Docs</a>
+          <a href="/login" class="nav-link {% if request.url.path == '/login' %}active{% endif %}">Sign In</a>
+          <a href="/register" class="nav-link nav-cta">Register Company</a>
+        {% endif %}
+      </nav>
+    </div>
+  </header>
+
+  <!-- Main View Area -->
+  <main class="main-content">
+    <div class="container">
+      {% block content %}{% endblock %}
+    </div>
+  </main>
+
+  <!-- Standard Institutional Footer -->
+  <footer class="site-footer">
+    <div class="container footer-inner">
+      <div>
+        <p><strong>Product Return Intelligence Platform</strong> &bull; Multi-company logistics & return analytics.</p>
+        <p style="margin-top: 0.25rem;">Pre-shipment prediction threshold: <strong>{{ threshold | default("0.3974") }}</strong> &bull; Scoped enterprise data isolation.</p>
+      </div>
+      <div class="footer-links">
+        {% if current_company %}
+          <a href="/dashboard">Dashboard</a>
+          <a href="/predict">Predict</a>
+          <a href="/analytics">Analytics</a>
+          <a href="/performance">Performance</a>
+          <a href="/recommendations">Recommendations</a>
+          <a href="/logout">Logout</a>
+        {% else %}
+          <a href="/">Home</a>
+          <a href="/login">Sign In</a>
+          <a href="/register">Register</a>
+          <a href="/methodology">Methodology</a>
+          <a href="/docs">FastAPI Docs</a>
+        {% endif %}
+      </div>
+    </div>
+  </footer>
+
+  <script src="/static/js/main.js"></script>
+  {% block scripts %}{% endblock %}
+</body>
+</html>

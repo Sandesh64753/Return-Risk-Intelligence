@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div style="text-align: center; padding: 4rem 1rem;">
+  <span class="page-tag" style="background-color: var(--status-neutral-bg); color: var(--status-neutral-text); border: 1px solid var(--status-neutral-border);">
+    HTTP 404 &bull; Resource Not Found
+  </span>
+  <h1 style="font-size: 2.5rem; margin: 0.75rem 0 0.5rem 0;">Page Not Located</h1>
+  <p style="font-size: 1.05rem; color: var(--text-secondary); max-width: 520px; margin: 0 auto 1.75rem auto;">
+    The requested dashboard view or resource could not be found. Please verify the URL or return to the main console.
+  </p>
+
+  <div style="display: flex; justify-content: center; gap: 1rem;">
+    <a href="/" class="btn btn-primary">Return to Console Home</a>
+    <a href="/predict" class="btn btn-secondary">Order Risk Evaluation</a>
+  </div>
+</div>
+{% endblock %}

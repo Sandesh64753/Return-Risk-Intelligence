@@ -1,0 +1,216 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="page-header">
+  <span class="page-tag">Inference Result</span>
+  <h1 class="page-title">Return Risk Assessment</h1>
+  <p class="page-description">
+    Statistical return probability evaluated strictly from pre-shipment order and catalog attributes.
+  </p>
+</div>
+
+<!-- Primary Result Hero Box -->
+<div class="result-hero {% if result.predicted_class == 1 %}risk-high{% else %}risk-low{% endif %}">
+  <div>
+    <span class="result-badge">
+      {% if result.predicted_class == 1 %}
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="10"></circle>
+          <line x1="12" y1="8" x2="12" y2="12"></line>
+          <line x1="12" y1="16" x2="12.01" y2="16"></line>
+        </svg>
+        Action Recommended
+      {% else %}
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+          <polyline points="22 4 12 14.01 9 11.01"></polyline>
+        </svg>
+        Standard Fulfillment
+      {% endif %}
+      &bull; {{ result.risk_level }} Risk Category
+    </span>
+
+    <h2 class="result-title">{{ result.risk_label }}</h2>
+    <p class="result-interpretation">{{ result.interpretation }}</p>
+  </div>
+
+  <div class="result-stats-card">
+    <div class="prob-label">Estimated Probability</div>
+    <div class="prob-metric">{{ result.probability_percent }}%</div>
+    <div class="threshold-indicator">
+      Operational Threshold: <strong>{{ (result.threshold * 100) | round(1) }}%</strong>
+    </div>
+  </div>
+</div>
+
+<!-- Historical Company Context Comparison Block -->
+{% if result.comparison %}
+<div class="card" style="margin-bottom: 1.75rem; border-left: 3px solid var(--accent-primary);">
+  <div class="card-header">
+    <span class="card-title">Company Historical Performance Comparison</span>
+    <span style="font-size: 0.78rem; color: var(--text-muted);">Segment: {{ result.comparison.category }}</span>
+  </div>
+  <div class="card-body">
+    <div style="background-color: var(--bg-subtle); padding: 0.85rem 1rem; border-radius: var(--radius-sm); margin-bottom: 1rem; font-size: 0.84rem; color: var(--text-secondary);">
+      <strong>Methodological Note:</strong> A predicted return probability is an estimated pre-shipment risk based on catalog attributes. It has a different meaning from the <em>actual return rate</em>, which is calculated strictly from completed orders with known post-delivery outcomes.
+    </div>
+
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1rem; margin-bottom: 1rem;">
+      <div style="background: var(--bg-surface); border: 1px solid var(--border-light); padding: 0.85rem; border-radius: var(--radius-sm);">
+        <div style="font-size: 0.76rem; text-transform: uppercase; color: var(--text-muted); font-weight: 600;">Current Order Risk</div>
+        <div style="font-size: 1.4rem; font-weight: 700; color: {% if result.predicted_class == 1 %}var(--status-high-risk-text){% else %}var(--status-low-risk-text){% endif %};">
+          {{ result.probability_percent }}%
+        </div>
+        <div style="font-size: 0.78rem; color: var(--text-muted);">Pre-shipment model prediction</div>
+      </div>
+
+      <div style="background: var(--bg-surface); border: 1px solid var(--border-light); padding: 0.85rem; border-radius: var(--radius-sm);">
+        <div style="font-size: 0.76rem; text-transform: uppercase; color: var(--text-muted); font-weight: 600;">Category Historical Return Rate</div>
+        <div style="font-size: 1.4rem; font-weight: 700; color: var(--text-primary);">
+          {% if result.comparison.has_category_history %}
+            {{ result.comparison.historical_actual_return_rate }}%
+          {% else %}
+            <span style="font-size: 0.95rem; font-weight: 500; color: var(--text-muted);">Insufficient history (&lt; 5 orders)</span>
+          {% endif %}
+        </div>
+        <div style="font-size: 0.78rem; color: var(--text-muted);">
+          {% if result.comparison.has_category_history %}
+            {{ result.comparison.historical_return_count }} returns / {{ result.comparison.historical_order_count }} orders
+          {% else %}
+            Empirical outcomes pending
+          {% endif %}
+        </div>
+      </div>
+
+      {% if result.comparison.has_product_history %}
+      <div style="background: var(--bg-surface); border: 1px solid var(--border-light); padding: 0.85rem; border-radius: var(--radius-sm);">
+        <div style="font-size: 0.76rem; text-transform: uppercase; color: var(--text-muted); font-weight: 600;">Product SKU Historical Rate</div>
+        <div style="font-size: 1.4rem; font-weight: 700; color: var(--text-primary);">
+          {{ result.comparison.product_actual_return_rate }}%
+        </div>
+        <div style="font-size: 0.78rem; color: var(--text-muted);">{{ result.comparison.product_order_count }} verified orders</div>
+      </div>
+      {% endif %}
+
+      <div style="background: var(--bg-surface); border: 1px solid var(--border-light); padding: 0.85rem; border-radius: var(--radius-sm);">
+        <div style="font-size: 0.76rem; text-transform: uppercase; color: var(--text-muted); font-weight: 600;">Historical Avg Predicted Prob</div>
+        <div style="font-size: 1.4rem; font-weight: 700; color: var(--text-primary);">
+          {% if result.comparison.historical_avg_predicted_prob is not none %}
+            {{ result.comparison.historical_avg_predicted_prob }}%
+          {% else %}
+            <span style="font-size: 0.95rem; font-weight: 500; color: var(--text-muted);">First prediction in category</span>
+          {% endif %}
+        </div>
+        <div style="font-size: 0.78rem; color: var(--text-muted);">Prior model evaluations in segment</div>
+      </div>
+    </div>
+
+    {% if result.comparison.comparison_notes %}
+    <ul class="factor-list" style="margin-top: 0.5rem;">
+      {% for note in result.comparison.comparison_notes %}
+      <li class="factor-item">
+        <svg class="factor-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="9 11 12 14 22 4"></polyline>
+          <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path>
+        </svg>
+        <span>{{ note }}</span>
+      </li>
+      {% endfor %}
+    </ul>
+    {% endif %}
+  </div>
+</div>
+{% endif %}
+
+<!-- Key Operational Highlights & Factors -->
+{% if result.key_factors %}
+<div class="card" style="margin-bottom: 1.75rem;">
+  <div class="card-header">
+    <span class="card-title">Submitted Attributes of Operational Note</span>
+  </div>
+  <div class="card-body">
+    <p style="font-size: 0.84rem; color: var(--text-muted); margin-bottom: 0.85rem;">
+      Specific characteristics of this order identified in the pre-shipment profile:
+    </p>
+    <ul class="factor-list">
+      {% for factor in result.key_factors %}
+      <li class="factor-item">
+        <svg class="factor-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="10"></circle>
+          <line x1="12" y1="16" x2="12" y2="12"></line>
+          <line x1="12" y1="8" x2="12.01" y2="8"></line>
+        </svg>
+        <span>{{ factor }}</span>
+      </li>
+      {% endfor %}
+    </ul>
+  </div>
+</div>
+{% endif %}
+
+<!-- Full Parameter Summary Table -->
+<div class="card" style="margin-bottom: 1.75rem;">
+  <div class="card-header">
+    <span class="card-title">Complete Submitted Order Parameters</span>
+    <span style="font-size: 0.78rem; color: var(--text-muted);">
+      {% if result.record_id %}Audit Record #{{ result.record_id }}{% else %}Exact Inputs Transmitted for Inference{% endif %}
+    </span>
+  </div>
+  <div class="data-table-wrapper">
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>Attribute</th>
+          <th>Submitted Value</th>
+          <th>Attribute</th>
+          <th>Submitted Value</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% set items = result.submitted_inputs.items() | list %}
+        {% for i in range(0, items | length, 2) %}
+        <tr>
+          <td style="font-weight: 500; color: var(--text-primary);">{{ items[i][0] }}</td>
+          <td><span class="metric-number">{{ items[i][1] }}</span></td>
+          {% if i + 1 < items | length %}
+          <td style="font-weight: 500; color: var(--text-primary);">{{ items[i+1][0] }}</td>
+          <td><span class="metric-number">{{ items[i+1][1] }}</span></td>
+          {% else %}
+          <td></td><td></td>
+          {% endif %}
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- Operational Disclaimer Callout -->
+<div class="callout">
+  <strong style="display: block; margin-bottom: 0.25rem;">Statistical Estimate Notice</strong>
+  <p>
+    This prediction is a calibrated probability estimate calculated from historical e-commerce order distributions. It does not establish causal behavior or guarantee whether any individual customer will ultimately retain or return their purchase. Operations teams should treat this assessment as supporting signal alongside standard fulfillment protocols.
+  </p>
+</div>
+
+<!-- Navigation Actions -->
+<div style="display: flex; gap: 1rem; align-items: center; margin-top: 1.5rem; flex-wrap: wrap;">
+  <a href="/predict" class="btn btn-primary">
+    Evaluate Another Order
+  </a>
+  {% if result.record_id %}
+  <a href="/predictions/{{ result.record_id }}" class="btn btn-secondary">
+    Audit Record #{{ result.record_id }}
+  </a>
+  {% endif %}
+  <a href="/dashboard" class="btn btn-secondary">
+    Return to Dashboard
+  </a>
+  <a href="/methodology" class="btn btn-secondary">
+    Review Validation Methodology
+  </a>
+  <button type="button" class="btn btn-secondary" onclick="window.print()">
+    Print Assessment Summary
+  </button>
+</div>
+{% endblock %}

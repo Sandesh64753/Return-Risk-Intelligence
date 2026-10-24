@@ -1,0 +1,213 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div style="margin-bottom: 2rem;">
+  <div style="display: flex; align-items: flex-start; justify-content: space-between; flex-wrap: wrap; gap: 1rem;">
+    <div>
+      <h1 class="page-title" style="margin-bottom: 0.35rem;">{{ current_company.name }} Operations Dashboard</h1>
+      <p class="page-lead" style="margin-bottom: 0;">
+        Company workspace &bull; Vertical: <strong>{{ current_company.industry | default("General Merchandise") }}</strong>
+      </p>
+    </div>
+    <div style="display: flex; gap: 0.75rem; flex-wrap: wrap;">
+      <a href="/predict" class="btn btn-primary">Evaluate New Order</a>
+      <a href="/import" class="btn btn-secondary">Import Historical Outcomes</a>
+    </div>
+  </div>
+</div>
+
+<!-- Clear Operational Distinctions Alert -->
+<div class="callout" style="background-color: var(--bg-surface); border-left: 3px solid var(--accent-primary); margin-bottom: 1.75rem;">
+  <strong>Data Governance Principle:</strong> This console strictly separates <em>Pre-Shipment Predictions</em> (estimated probability based on pre-fulfillment catalog attributes) from <em>Verified Return Outcomes</em> (empirical returns logged after delivery). Predictions never fabricate or distort actual return metrics.
+</div>
+
+<!-- KPI Metric Cards Grid -->
+<div class="stat-grid">
+  <div class="stat-card">
+    <div class="stat-label">Predictions Executed</div>
+    <div class="stat-value">{{ stats.total_predictions }}</div>
+    <div class="stat-subtext">
+      {% if stats.total_predictions > 0 %}
+        <strong>{{ stats.high_risk_predictions }}</strong> flagged high risk ({{ stats.high_risk_pct }}%)
+      {% else %}
+        No predictions performed yet
+      {% endif %}
+    </div>
+  </div>
+
+  <div class="stat-card">
+    <div class="stat-label">Orders with Known Outcomes</div>
+    <div class="stat-value">{{ stats.total_known_orders }}</div>
+    <div class="stat-subtext">Eligible orders in company history</div>
+  </div>
+
+  <div class="stat-card">
+    <div class="stat-label">Actual Return Rate</div>
+    <div class="stat-value">
+      {% if stats.total_known_orders > 0 %}
+        {{ stats.actual_return_rate }}%
+      {% else %}
+        --
+      {% endif %}
+    </div>
+    <div class="stat-subtext">
+      {% if stats.total_known_orders > 0 %}
+        {{ stats.actual_returns }} returns / {{ stats.total_known_orders }} orders
+      {% else %}
+        Awaiting outcome records
+      {% endif %}
+    </div>
+  </div>
+
+  <div class="stat-card">
+    <div class="stat-label">Active Recommendations</div>
+    <div class="stat-value">{{ stats.active_recs_count }}</div>
+    <div class="stat-subtext">
+      <a href="/recommendations" style="color: var(--accent-primary); font-weight: 500;">Review action plans &rarr;</a>
+    </div>
+  </div>
+</div>
+
+{% if not stats.has_data %}
+  <!-- Empty State for Newly Registered Company -->
+  <div class="empty-state">
+    <div style="font-size: 2.2rem; margin-bottom: 0.75rem;">📊</div>
+    <h2 class="empty-title">Your Company Workspace is Ready</h2>
+    <p class="empty-desc">
+      To generate returns intelligence, evaluate individual pre-shipment orders using our trained machine learning pipeline, or import historical actual order outcomes via CSV.
+    </p>
+    <div style="display: flex; justify-content: center; gap: 1rem; flex-wrap: wrap;">
+      <a href="/predict" class="btn btn-primary">Evaluate an Order</a>
+      <a href="/import" class="btn btn-secondary">Import Historical CSV</a>
+      <form action="/import/demo-seed" method="POST" style="display: inline;">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+        <button type="submit" class="btn btn-secondary" title="Load realistic test data from repository dataset">
+          Load Sample Dataset (1-Click)
+        </button>
+      </form>
+    </div>
+  </div>
+{% else %}
+  <div style="display: grid; grid-template-columns: 1fr; gap: 2rem;">
+    <!-- Top Categories Return Rate Section -->
+    <div class="card">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+        <div>
+          <h2 class="card-title" style="margin-bottom: 0.2rem;">Highest Return Categories (Empirical Outcomes)</h2>
+          <p class="card-subtitle" style="margin-bottom: 0;">
+            Ranked by verified actual return rate &bull; Minimum sample size: <strong>{{ stats.min_sample_size }} orders</strong>
+          </p>
+        </div>
+        <a href="/analytics" class="btn btn-secondary btn-sm">Full Analytics &rarr;</a>
+      </div>
+
+      {% if stats.top_categories %}
+        <div class="table-responsive">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Category</th>
+                <th class="text-right">Completed Orders</th>
+                <th class="text-right">Actual Returns</th>
+                <th class="text-right">Actual Return Rate</th>
+                <th class="text-center">95% Confidence Interval</th>
+                <th class="text-center">Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for cat in stats.top_categories %}
+                <tr>
+                  <td><strong>{{ cat.category }}</strong></td>
+                  <td class="text-right">{{ cat.orders }}</td>
+                  <td class="text-right">{{ cat.returns }}</td>
+                  <td class="text-right">
+                    <strong style="color: {% if cat.return_rate >= 25 %}var(--status-high-risk-text){% else %}var(--text-primary){% endif %};">
+                      {{ cat.return_rate }}%
+                    </strong>
+                  </td>
+                  <td class="text-center ci-pill">
+                    [{{ cat.ci_low }}% &ndash; {{ cat.ci_high }}%]
+                  </td>
+                  <td class="text-center">
+                    {% if cat.return_rate >= 25 %}
+                      <span class="badge badge-risk-high">High Return</span>
+                    {% else %}
+                      <span class="badge badge-risk-low">Standard</span>
+                    {% endif %}
+                  </td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      {% else %}
+        <p style="color: var(--text-muted); font-size: 0.88rem; padding: 1rem 0;">
+          No categories have reached the minimum sample size threshold ({{ stats.min_sample_size }} orders) yet.
+        </p>
+      {% endif %}
+    </div>
+
+    <!-- Recent Predictions Audit Log -->
+    <div class="card">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+        <div>
+          <h2 class="card-title" style="margin-bottom: 0.2rem;">Recent Pre-Shipment Order Risk Assessments</h2>
+          <p class="card-subtitle" style="margin-bottom: 0;">Auditable model inference records for this company</p>
+        </div>
+        <a href="/predictions" class="btn btn-secondary btn-sm">View All Predictions &rarr;</a>
+      </div>
+
+      {% if stats.recent_predictions %}
+        <div class="table-responsive">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Audit ID</th>
+                <th>Timestamp</th>
+                <th>Category / SKU</th>
+                <th class="text-right">Return Probability</th>
+                <th class="text-center">Classification</th>
+                <th class="text-right">Action</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for pred in stats.recent_predictions %}
+                {% set f = pred.get_features_dict() %}
+                <tr>
+                  <td><code>#{{ pred.id }}</code></td>
+                  <td style="color: var(--text-muted); font-size: 0.82rem;">{{ pred.created_at.strftime('%Y-%m-%d %H:%M') }}</td>
+                  <td>
+                    <strong>{{ f.product_category }}</strong> &bull; {{ f.sub_category }}
+                    {% if pred.product %}
+                      <br><span style="font-size: 0.78rem; color: var(--text-muted);">{{ pred.product.product_identifier }}</span>
+                    {% endif %}
+                  </td>
+                  <td class="text-right">
+                    <strong>{{ (pred.predicted_return_probability * 100) | round(1) }}%</strong>
+                  </td>
+                  <td class="text-center">
+                    {% if pred.predicted_return_class == 1 %}
+                      <span class="badge badge-risk-high">{{ pred.risk_label }}</span>
+                    {% else %}
+                      <span class="badge badge-risk-low">{{ pred.risk_label }}</span>
+                    {% endif %}
+                  </td>
+                  <td class="text-right">
+                    <a href="/predictions/{{ pred.id }}" style="color: var(--accent-primary); font-size: 0.84rem; font-weight: 500;">
+                      View Detail &rarr;
+                    </a>
+                  </td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      {% else %}
+        <p style="color: var(--text-muted); font-size: 0.88rem; padding: 1rem 0;">
+          No predictions performed yet. <a href="/predict" style="color: var(--accent-primary);">Run your first order evaluation</a>.
+        </p>
+      {% endif %}
+    </div>
+  </div>
+{% endif %}
+{% endblock %}

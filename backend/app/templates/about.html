@@ -1,0 +1,129 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="page-header">
+  <span class="page-tag">System Architecture</span>
+  <h1 class="page-title">About ReturnRisk Intelligence</h1>
+  <p class="page-description">
+    Production-grade web application integrating calibrated machine learning inference with high-performance Python backend engineering.
+  </p>
+</div>
+
+<!-- Architecture & Implementation Highlights -->
+<section style="margin-bottom: 2.5rem;">
+  <h2>System Architecture & Design Principles</h2>
+  <p style="margin: 0.6rem 0 1.25rem 0;">
+    This platform demonstrates end-to-end integration of a scikit-learn machine learning pipeline into an asynchronous, server-rendered web application with strict validation and low-latency inference.
+  </p>
+
+  <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1.25rem;">
+    <div class="card">
+      <div class="card-header"><span class="card-title">Backend Architecture</span></div>
+      <div class="card-body" style="font-size: 0.88rem;">
+        <ul style="padding-left: 1.25rem; line-height: 1.6;">
+          <li><strong>FastAPI & ASGI:</strong> Asynchronous high-throughput request handling with Uvicorn server runtime.</li>
+          <li><strong>Pydantic v2:</strong> Strict type validation, range enforcement, and domain value constraints on all inputs.</li>
+          <li><strong>Stateless Service:</strong> Decoupled prediction service loading model artifacts once at startup with memory efficiency.</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header"><span class="card-title">Inference Pipeline</span></div>
+      <div class="card-body" style="font-size: 0.88rem;">
+        <ul style="padding-left: 1.25rem; line-height: 1.6;">
+          <li><strong>Fitted Pipelines:</strong> Full reuse of training-time <code>ColumnTransformer</code>, ensuring identical imputation and scaling.</li>
+          <li><strong>Safe Handling:</strong> Unknown categorical levels gracefully ignored without throwing pipeline exceptions.</li>
+          <li><strong>Centralized Thresholding:</strong> Single-source configuration for decision boundaries targeting operational recall.</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header"><span class="card-title">User Experience & Frontend</span></div>
+      <div class="card-body" style="font-size: 0.88rem;">
+        <ul style="padding-left: 1.25rem; line-height: 1.6;">
+          <li><strong>Jinja2 Server Rendering:</strong> Fast initial page paint with server-validated state preservation.</li>
+          <li><strong>Custom Design System:</strong> Clean CSS architecture built for operational clarity, accessibility, and high contrast.</li>
+          <li><strong>Zero Heavy Frameworks:</strong> Lightweight, accessible vanilla JavaScript with zero third-party client dependencies.</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Technology Stack Specifications -->
+<section style="margin-bottom: 2.5rem;">
+  <h2>Technology Stack</h2>
+  <div class="card" style="margin-top: 0.85rem;">
+    <div class="data-table-wrapper">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Layer</th>
+            <th>Technology</th>
+            <th>Primary Function</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>Application Framework</strong></td>
+            <td>FastAPI 0.115+</td>
+            <td>Asynchronous routing, OpenAPI generation, and request lifecycle management.</td>
+          </tr>
+          <tr>
+            <td><strong>Templating Engine</strong></td>
+            <td>Jinja2</td>
+            <td>Server-side rendering for accessible, semantic HTML5 interfaces.</td>
+          </tr>
+          <tr>
+            <td><strong>Schema Validation</strong></td>
+            <td>Pydantic v2</td>
+            <td>Robust data contract enforcement, input parsing, and serialization.</td>
+          </tr>
+          <tr>
+            <td><strong>ML Runtime</strong></td>
+            <td>scikit-learn & joblib</td>
+            <td>Pipeline deserialization, feature transformation, and probabilistic inference.</td>
+          </tr>
+          <tr>
+            <td><strong>Data Manipulation</strong></td>
+            <td>pandas & NumPy</td>
+            <td>Vectorized matrix operations and dataframe restructuring for the transformer.</td>
+          </tr>
+          <tr>
+            <td><strong>Runtime Server</strong></td>
+            <td>Uvicorn</td>
+            <td>Production ASGI web server implementation.</td>
+          </tr>
+          <tr>
+            <td><strong>Package Manager</strong></td>
+            <td>uv</td>
+            <td>High-performance Python dependency resolution and virtual environment control.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<!-- Operational Standards & API Documentation -->
+<section style="margin-bottom: 2rem;">
+  <h2>Programmatic Integration</h2>
+  <div class="card" style="margin-top: 0.85rem;">
+    <div class="card-body" style="font-size: 0.88rem; line-height: 1.6;">
+      <p style="margin-bottom: 0.85rem;">
+        In addition to the interactive web interface, this application exposes standard RESTful endpoints for integration into existing enterprise warehouse management systems (WMS) and enterprise resource planning (ERP) workflows:
+      </p>
+      <ul style="padding-left: 1.25rem; margin-bottom: 1rem;">
+        <li><code>GET /health</code> &mdash; Application liveness and model readiness probe.</li>
+        <li><code>POST /api/predict</code> &mdash; Structured JSON inference with schema validation.</li>
+        <li><code>GET /api/metadata</code> &mdash; Active decision threshold, expected features, and test metrics.</li>
+      </ul>
+      <p>
+        Interactive OpenAPI and ReDoc documentation are available at <a href="/docs" target="_blank" rel="noopener"><strong>/docs</strong></a> and <a href="/redoc" target="_blank" rel="noopener"><strong>/redoc</strong></a>.
+      </p>
+    </div>
+  </div>
+</section>
+{% endblock %}
