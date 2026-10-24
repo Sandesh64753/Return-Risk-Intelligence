@@ -1,0 +1,26 @@
+services:
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: product_return_backend
+    ports:
+      - "8000:8000"
+    environment:
+      - ENVIRONMENT=production
+      - DEBUG=false
+      - HOST=0.0.0.0
+      - PORT=8000
+      - SECRET_KEY=prod-secure-session-signing-key-minimum-32-chars-long
+      - POSTGRESS_DATABASE=${POSTGRESS_DATABASE:-sqlite:///./return_intelligence.db}
+      - DATABASE_URL=${DATABASE_URL:-}
+      - ARTIFACT_PATH=artifacts/model.joblib
+    env_file:
+      - .env
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://127.0.0.1:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s

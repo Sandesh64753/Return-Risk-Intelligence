@@ -66,11 +66,14 @@ DEMO_PRESETS = {
             "shipping_distance_km": 280.0,
             "wishlist_before_purchase": 1,
             "product_page_views": 24,
+            "delayed_delivery": 0,
+            "customer_support_calls": 0,
+            "chat_interactions": 0,
         },
     },
     "preset_2": {
         "name": "High-Risk Discount Apparel",
-        "description": "Deep discount apparel, COD payment, seller fulfilled, multiple units.",
+        "description": "Deep discount apparel, COD payment, seller fulfilled, multiple units, delivery delay.",
         "data": {
             "product_category": "Fashion",
             "sub_category": "Women",
@@ -90,6 +93,9 @@ DEMO_PRESETS = {
             "shipping_distance_km": 1150.0,
             "wishlist_before_purchase": 0,
             "product_page_views": 4,
+            "delayed_delivery": 1,
+            "customer_support_calls": 2,
+            "chat_interactions": 1,
         },
     },
     "preset_3": {
@@ -114,6 +120,9 @@ DEMO_PRESETS = {
             "shipping_distance_km": 820.0,
             "wishlist_before_purchase": 0,
             "product_page_views": 8,
+            "delayed_delivery": 0,
+            "customer_support_calls": 1,
+            "chat_interactions": 0,
         },
     },
 }

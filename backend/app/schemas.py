@@ -130,6 +130,55 @@ class PredictionInput(BaseModel):
         description="Product detail page impressions before purchase",
         examples=[15]
     )
+    delayed_delivery: Optional[int] = Field(
+        0,
+        ge=0,
+        le=1,
+        description="1 if order experienced transit or delivery delays, 0 otherwise",
+        examples=[0],
+    )
+    customer_support_calls: Optional[int] = Field(
+        0,
+        ge=0,
+        le=50,
+        description="Customer support phone inquiries prior to delivery/return",
+        examples=[0],
+    )
+    chat_interactions: Optional[int] = Field(
+        0,
+        ge=0,
+        le=50,
+        description="Customer support live chat sessions prior to delivery/return",
+        examples=[0],
+    )
+    total_support_contacts: Optional[int] = Field(
+        None,
+        ge=0,
+        le=100,
+        description="Consolidated customer support contacts (calls + chat interactions)",
+        examples=[1],
+    )
+    product_return_rate: Optional[float] = Field(
+        None,
+        ge=0.0,
+        le=1.0,
+        description="Historical return rate for this SKU/product catalog item",
+        examples=[0.134],
+    )
+    category_return_rate: Optional[float] = Field(
+        None,
+        ge=0.0,
+        le=1.0,
+        description="Historical return rate for the merchandise category",
+        examples=[0.120],
+    )
+    seller_return_rate: Optional[float] = Field(
+        None,
+        ge=0.0,
+        le=1.0,
+        description="Historical return rate for the fulfillment merchant/seller",
+        examples=[0.121],
+    )
     log_price: Optional[float] = Field(
         None,
         description="Optional log1p(product_price). Computed automatically if omitted.",
@@ -181,6 +230,7 @@ class PredictionInput(BaseModel):
             "product_category": self.product_category,
             "sub_category": self.sub_category,
             "brand": self.brand,
+            "product_price": float(self.product_price),
             "discount_percent": float(self.discount_percent),
             "product_rating": float(self.product_rating),
             "review_count": int(self.review_count),
@@ -194,7 +244,19 @@ class PredictionInput(BaseModel):
             "shipping_distance_km": float(self.shipping_distance_km),
             "wishlist_before_purchase": int(self.wishlist_before_purchase),
             "product_page_views": int(self.product_page_views),
+            "delayed_delivery": int(self.delayed_delivery or 0),
+            "customer_support_calls": int(self.customer_support_calls or 0),
+            "chat_interactions": int(self.chat_interactions or 0),
+            "total_support_contacts": (
+                int(self.total_support_contacts)
+                if self.total_support_contacts is not None
+                else int((self.customer_support_calls or 0) + (self.chat_interactions or 0))
+            ),
+            "product_return_rate": float(self.product_return_rate) if self.product_return_rate is not None else None,
+            "category_return_rate": float(self.category_return_rate) if self.category_return_rate is not None else None,
+            "seller_return_rate": float(self.seller_return_rate) if self.seller_return_rate is not None else None,
             "log_price": log_p,
+            "product_identifier": self.product_identifier,
         }
 
 
