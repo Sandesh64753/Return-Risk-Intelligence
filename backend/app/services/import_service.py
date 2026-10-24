@@ -275,11 +275,22 @@ class ImportService:
         import os
         from pathlib import Path
 
-        dataset_path = Path("dataset/cleaned_returns.csv")
-        if not dataset_path.exists():
-            dataset_path = Path("dataset/returns_dataset.csv")
+        backend_dir = Path(__file__).resolve().parent.parent.parent
+        candidates = [
+            backend_dir / "dataset" / "cleaned_returns.csv",
+            backend_dir / "dataset" / "returns_dataset.csv",
+            Path("dataset/cleaned_returns.csv"),
+            Path("dataset/returns_dataset.csv"),
+            Path("backend/dataset/cleaned_returns.csv"),
+            Path("backend/dataset/returns_dataset.csv"),
+        ]
+        dataset_path = None
+        for cand in candidates:
+            if cand.exists():
+                dataset_path = cand
+                break
 
-        if not dataset_path.exists():
+        if not dataset_path:
             return {"success": False, "error": "Dataset file not found."}
 
         df = pd.read_csv(dataset_path)
