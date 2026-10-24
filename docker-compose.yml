@@ -1,4 +1,12 @@
+# =========================================================================
+# Product Return Risk Intelligence Platform - Unified Docker Compose
+# Orchestrates FastAPI Backend (ML & DB) + React Frontend (Nginx Reverse Proxy)
+# =========================================================================
+
 services:
+  # -----------------------------------------------------------------------
+  # Backend API & Machine Learning Inference Engine
+  # -----------------------------------------------------------------------
   backend:
     build:
       context: ./backend
@@ -12,12 +20,13 @@ services:
       - HOST=0.0.0.0
       - PORT=8000
       - SECRET_KEY=prod-secure-session-signing-key-minimum-32-chars-long
-      # Reads Neon PostgreSQL connection string from local .env if provided
+      # Reads Neon PostgreSQL connection string from local .env if provided, else SQLite
       - POSTGRESS_DATABASE=${POSTGRESS_DATABASE:-sqlite:///./return_intelligence.db}
       - DATABASE_URL=${DATABASE_URL:-}
       - ARTIFACT_PATH=artifacts/model.joblib
     env_file:
-      - .env
+      - path: .env
+        required: false
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "curl", "-f", "http://127.0.0.1:8000/health"]
@@ -25,3 +34,26 @@ services:
       timeout: 10s
       retries: 3
       start_period: 10s
+    networks:
+      - return_network
+
+  # -----------------------------------------------------------------------
+  # Frontend Operations Console & Nginx Reverse Proxy
+  # -----------------------------------------------------------------------
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: product_return_frontend
+    ports:
+      - "${FRONTEND_PORT:-3000}:80"
+    restart: unless-stopped
+    depends_on:
+      backend:
+        condition: service_healthy
+    networks:
+      - return_network
+
+networks:
+  return_network:
+    driver: bridge

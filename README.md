@@ -59,8 +59,8 @@ The platform combines a **React 19 single-page application** (`frontend/`) and a
 
 ```
 product-return-prediction/
-├── Dockerfile                    # Production multi-stage Docker build for backend
-├── docker-compose.yml            # Docker Compose orchestration
+├── Dockerfile                    # Unified full-stack multi-stage Docker build
+├── docker-compose.yml            # Docker Compose orchestration (Backend + Frontend)
 ├── .dockerignore                 # Docker build exclusions
 ├── requirements.txt              # Standard pip dependencies
 ├── pyproject.toml                # UV / PEP-518 package configuration
@@ -75,6 +75,8 @@ product-return-prediction/
 │   └── returns_dataset.csv       # Raw feature dataset
 │
 ├── frontend/                     # React.js Single Page Application
+│   ├── Dockerfile                # Multi-stage Docker build (Node.js -> Nginx Alpine)
+│   ├── nginx.conf                # Reverse proxy config for API, health, docs & SPA routing
 │   ├── package.json              # React 19, Lucide React, Vite
 │   ├── vite.config.js            # Vite config with backend proxy (:8000)
 │   ├── src/
@@ -222,19 +224,35 @@ cp .env.example .env
 
 ## 6. Installation & Deployment
 
-### Method 1: Running with Docker & Docker Compose (Recommended)
+### Method 1: Running Full-Stack with Docker & Docker Compose (Recommended)
 
-To build and run the backend service using Docker:
+To build and run both the FastAPI backend and React frontend services together in isolated containers:
 
 ```bash
-# Build and start the container
+# Build and start both frontend and backend containers
 docker compose up --build
 
 # Run in detached mode
 docker compose up -d
 ```
 
-The containerized backend will be available at `http://localhost:8000`.
+- **Frontend Operations Console**: `http://localhost:3000` (configurable via `FRONTEND_PORT`)
+- **Backend API & Swagger Docs**: `http://localhost:8000/docs`
+- **Health Check**: `http://localhost:8000/health` (or `http://localhost:3000/health` via Nginx)
+
+The frontend container serves the compiled React application via Alpine Nginx and transparently reverse-proxies `/api/*`, `/health`, and `/docs` requests to the backend container over Docker's internal network (`return_network`).
+
+#### Alternative: Unified Single-Container Build
+
+To package both frontend and backend into a single self-contained image (ideal for Google Cloud Run, AWS App Runner, Hugging Face, or Render):
+
+```bash
+# Build unified full-stack image
+docker build -t return-risk-app .
+
+# Run container (serves both React SPA and FastAPI on port 8000)
+docker run -p 8000:8000 --env-file .env return-risk-app
+```
 
 ---
 

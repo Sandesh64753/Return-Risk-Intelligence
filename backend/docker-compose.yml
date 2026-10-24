@@ -16,7 +16,8 @@ services:
       - DATABASE_URL=${DATABASE_URL:-}
       - ARTIFACT_PATH=artifacts/model.joblib
     env_file:
-      - .env
+      - path: .env
+        required: false
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "curl", "-f", "http://127.0.0.1:8000/health"]
