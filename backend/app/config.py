@@ -32,18 +32,42 @@ def _load_env_file() -> None:
 
 _load_env_file()
 
+def _clean_database_url(url: Optional[str]) -> Optional[str]:
+    """Sanitize database URL string by stripping whitespace, quotes, and normalizing dialect prefixes."""
+    if not url:
+        return None
+    cleaned = url.strip().strip("'\"`").strip()
+    if not cleaned:
+        return None
+    # Normalize postgres:// and postgresql:// to postgresql+psycopg2://
+    if cleaned.startswith("postgres://"):
+        cleaned = "postgresql+psycopg2://" + cleaned[len("postgres://") :]
+    elif cleaned.startswith("postgresql://"):
+        cleaned = "postgresql+psycopg2://" + cleaned[len("postgresql://") :]
+    return cleaned
+
+
 def _resolve_database_url() -> str:
-    # Read POSTGRESS_DATABASE (from .env), DATABASE_URL, or POSTGRES_DATABASE
-    raw_url = (
-        os.getenv("POSTGRESS_DATABASE")
-        or os.getenv("DATABASE_URL")
-        or os.getenv("POSTGRES_DATABASE")
-        or "sqlite:///./return_intelligence.db"
-    )
-    # Ensure SQLAlchemy 2.0+ uses psycopg2-binary for postgresql://
-    if raw_url.startswith("postgresql://"):
-        raw_url = raw_url.replace("postgresql://", "postgresql+psycopg2://", 1)
-    return raw_url
+    fallback_url = "sqlite:///./return_intelligence.db"
+    candidates = [
+        os.getenv("POSTGRESS_DATABASE"),
+        os.getenv("DATABASE_URL"),
+        os.getenv("POSTGRES_DATABASE"),
+        os.getenv("NEON_DATABASE_URL"),
+    ]
+
+    for candidate in candidates:
+        cleaned = _clean_database_url(candidate)
+        if cleaned:
+            try:
+                from sqlalchemy.engine import make_url
+                make_url(cleaned)
+                return cleaned
+            except Exception:
+                continue
+
+    return fallback_url
+
 
 
 def _resolve_artifact_path() -> Path:
